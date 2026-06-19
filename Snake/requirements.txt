@@ -1,0 +1,12 @@
+# Archivo: requirements.txt
+# Descripción:
+#     Este archivo contiene las dependencias externas necesarias para ejecutar
+#     el Juego de la Serpiente.
+#
+#     Las dependencias pueden instalarse ejecutando:
+#     py -3.13 -m pip install -r requirements.txt
+
+# Pygame es la librería utilizada para crear la ventana del juego,
+# manejar eventos del teclado, controlar el tiempo y dibujar elementos
+# como la serpiente, la comida, el puntaje y los mensajes en pantalla.
+pygame>=2.6.1
