@@ -1,61 +1,46 @@
 """
 Archivo: game.py
 Descripción:
-    Este archivo contiene la clase Game, que funciona como el controlador principal
+    Este archivo contiene la clase Game, que funciona como controlador principal
     del Juego de la Serpiente.
 
-    El controlador principal se encarga de coordinar todos los módulos del sistema:
-    - Inicializa la ventana del juego.
-    - Crea los objetos principales, como la serpiente y la comida.
-    - Procesa los eventos del teclado.
-    - Actualiza la lógica del juego.
-    - Dibuja los elementos en pantalla.
-    - Controla el ciclo principal del programa.
+    El controlador principal es responsable de coordinar todos los módulos:
+    - Inicialización de Pygame.
+    - Creación de ventana.
+    - Creación de serpiente y comida.
+    - Procesamiento de eventos.
+    - Actualización de lógica.
+    - Renderizado.
+    - Control de estados.
+    - Sonidos.
+    - Dificultad progresiva.
 
-    En términos de arquitectura, este archivo representa el núcleo del sistema.
+    Este archivo no debe encargarse de todos los detalles internos.
+    Por eso delega responsabilidades a otras clases como Snake, Food,
+    ScoreSystem, SoundSystem, Renderer y Screens.
 """
 
-
-# Importa la librería Pygame, utilizada para crear la ventana,
-# manejar eventos del teclado, dibujar elementos y controlar el tiempo.
 import pygame
 
-
-# Importación de constantes generales del juego.
-# Estas constantes se encuentran separadas en settings.py para mantener
-# una configuración centralizada y fácil de modificar.
 from src.config.settings import (
     SCREEN_WIDTH,
     SCREEN_HEIGHT,
     FPS,
+    MAX_FPS,
+    SPEED_INCREASE_EVERY,
     WINDOW_TITLE
 )
 
-
-# Importación de los estados del juego.
-# Permite saber si el juego está corriendo, finalizado o si debe cerrarse.
 from src.core.game_state import GameState
-
-# Importación del módulo encargado de procesar las entradas del teclado.
 from src.core.input_handler import InputHandler
 
-
-# Importación de las entidades principales del juego.
-# Snake representa a la serpiente y Food representa la comida.
 from src.entities.snake import Snake
 from src.entities.food import Food
 
-
-# Importación de los sistemas de lógica.
-# CollisionSystem verifica colisiones.
-# ScoreSystem administra el puntaje.
 from src.systems.collision_system import CollisionSystem
 from src.systems.score_system import ScoreSystem
+from src.systems.sound_system import SoundSystem
 
-
-# Importación de los módulos visuales.
-# Renderer dibuja los elementos del juego.
-# Screens muestra pantallas o mensajes especiales, como Game Over.
 from src.ui.renderer import Renderer
 from src.ui.screens import Screens
 
@@ -64,116 +49,172 @@ class Game:
     """
     Controlador principal del Juego de la Serpiente.
 
-    Esta clase integra todos los componentes del programa y administra el ciclo
-    principal del juego. Su función no es representar directamente a la serpiente,
-    la comida o el puntaje, sino coordinar los módulos responsables de cada tarea.
+    Esta clase une todos los módulos del juego y administra el ciclo principal.
     """
 
     def __init__(self):
         """
-        Constructor de la clase Game.
+        Inicializa el juego, sus módulos principales y el estado inicial.
 
-        Este método se ejecuta automáticamente cuando se crea una instancia del juego.
-        Aquí se inicializa Pygame, se crea la ventana y se instancian todos los
-        objetos principales necesarios para que el juego funcione.
+        Este método se ejecuta automáticamente cuando se crea un objeto Game.
         """
 
-        # Inicializa todos los módulos internos de Pygame.
-        # Esto es obligatorio antes de crear ventanas, usar fuentes o manejar eventos.
+        # Inicializa todos los módulos de Pygame.
         pygame.init()
 
-        # Crea la ventana principal del juego con el tamaño definido en settings.py.
+        # Crea la ventana principal del juego.
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
-        # Define el título de la ventana.
+        # Establece el título de la ventana.
         pygame.display.set_caption(WINDOW_TITLE)
 
-        # Crea un reloj de Pygame.
-        # Este reloj se utiliza para controlar la velocidad del ciclo principal
-        # y evitar que el juego corra demasiado rápido.
+        # Crea el reloj del juego.
+        # Se usa para controlar la velocidad de ejecución del ciclo principal.
         self.clock = pygame.time.Clock()
 
         # Crea la serpiente inicial.
         self.snake = Snake()
 
         # Crea la comida inicial.
-        # Se envía el cuerpo de la serpiente para evitar que la comida aparezca
-        # encima de ella.
+        # Se envía el cuerpo de la serpiente para evitar que la comida
+        # aparezca encima de ella.
         self.food = Food(self.snake.body)
 
         # Crea el sistema de puntaje.
         self.score_system = ScoreSystem()
 
-        # Crea el módulo encargado de dibujar los elementos visuales del juego.
+        # Crea el sistema de sonidos.
+        self.sound_system = SoundSystem()
+
+        # Crea el renderizador de elementos del juego.
         self.renderer = Renderer(self.screen)
 
-        # Crea el módulo encargado de mostrar pantallas especiales.
+        # Crea el administrador de pantallas especiales.
         self.screens = Screens(self.screen)
 
-        # Define el estado inicial del juego.
-        # En esta versión parcial, el juego inicia directamente en ejecución.
-        self.state = GameState.RUNNING
+        # Estado inicial del programa.
+        # Ahora el juego no inicia directamente corriendo, sino mostrando
+        # una pantalla inicial.
+        self.state = GameState.START_SCREEN
+
+        # Variable para evitar que el sonido de Game Over se reproduzca muchas veces.
+        #
+        # Sin esta variable, como el ciclo principal sigue ejecutándose mientras
+        # el estado es GAME_OVER, el sonido podría repetirse en cada frame.
+        self.game_over_sound_played = False
+
+    def get_current_fps(self):
+        """
+        Calcula la velocidad actual del juego según el puntaje.
+
+        Retorna:
+            int:
+                FPS actual que debe usar el ciclo principal.
+
+        Lógica:
+            Se parte de una velocidad inicial definida por FPS.
+            Luego se calcula un bono de velocidad en función del puntaje.
+
+        Ejemplo:
+            Si SPEED_INCREASE_EVERY = 50:
+            - 0 puntos   -> FPS base.
+            - 50 puntos  -> FPS + 1.
+            - 100 puntos -> FPS + 2.
+
+        La función min() impide superar MAX_FPS.
+        """
+
+        # Obtiene el puntaje actual.
+        score = self.score_system.get_score()
+
+        # Calcula cuántas veces el puntaje ha alcanzado el intervalo de aumento.
+        # La división entera // devuelve solo la parte entera.
+        speed_bonus = score // SPEED_INCREASE_EVERY
+
+        # Suma el bono a la velocidad inicial.
+        current_fps = FPS + speed_bonus
+
+        # Devuelve la velocidad calculada sin permitir superar MAX_FPS.
+        return min(current_fps, MAX_FPS)
 
     def reset_game(self):
         """
         Reinicia todos los elementos principales del juego.
 
-        Este método se utiliza cuando el jugador pierde y decide iniciar
-        una nueva partida. Restablece la serpiente, la comida, el puntaje
-        y el estado general del juego.
+        Este método se usa:
+        - Cuando el jugador presiona ENTER desde la pantalla inicial.
+        - Cuando el jugador presiona R después de perder.
+
+        Reinicia:
+        - Serpiente.
+        - Comida.
+        - Puntaje.
+        - Estado del juego.
+        - Bandera del sonido Game Over.
         """
 
-        # Reinicia la serpiente a su posición y tamaño inicial.
+        # Reinicia la serpiente a su tamaño y posición inicial.
         self.snake.reset()
 
-        # Genera una nueva comida en una posición válida.
-        # Se toma en cuenta el cuerpo de la serpiente para evitar superposición.
+        # Genera comida en una nueva posición válida.
         self.food.respawn(self.snake.body)
 
-        # Reinicia el puntaje a cero.
+        # Reinicia el puntaje actual.
+        # No reinicia el high score.
         self.score_system.reset()
 
-        # Cambia el estado del juego a RUNNING para comenzar una nueva partida.
+        # Permite que el sonido de Game Over pueda reproducirse nuevamente
+        # cuando ocurra una nueva pérdida.
+        self.game_over_sound_played = False
+
+        # Cambia el estado a RUNNING para iniciar la partida.
         self.state = GameState.RUNNING
+
+        # Reproduce sonido de inicio o reinicio.
+        self.sound_system.play_start()
 
     def handle_events(self):
         """
-        Procesa los eventos generados por el usuario.
+        Procesa todos los eventos del usuario.
 
-        En Pygame, los eventos representan acciones externas, como presionar
-        teclas, cerrar la ventana o mover el mouse. En este juego se utilizan
-        principalmente eventos de teclado y cierre de ventana.
+        En cada ciclo del juego, Pygame guarda eventos pendientes.
+        Este método los revisa y responde según el estado actual del juego.
         """
 
-        # Recorre todos los eventos pendientes registrados por Pygame.
+        # Recorre la lista de eventos generados por Pygame.
         for event in pygame.event.get():
 
-            # Si el usuario presiona el botón de cerrar la ventana,
-            # se cambia el estado a EXIT para terminar el ciclo principal.
+            # Si el usuario cierra la ventana con la X,
+            # se cambia el estado a EXIT.
             if event.type == pygame.QUIT:
                 self.state = GameState.EXIT
 
-            # Si el usuario presiona ESC, también se solicita salir del juego.
+            # Si el usuario presiona ESC, también se cambia a EXIT.
             if InputHandler.is_exit_key(event):
                 self.state = GameState.EXIT
 
-            # Si el juego se encuentra en ejecución, se procesan las teclas
-            # de movimiento de la serpiente.
-            if self.state == GameState.RUNNING:
+            # Si el juego está en la pantalla inicial:
+            if self.state == GameState.START_SCREEN:
 
-                # Convierte la tecla presionada en una dirección lógica:
-                # UP, DOWN, LEFT o RIGHT.
+                # ENTER inicia la partida.
+                if InputHandler.is_start_key(event):
+                    self.reset_game()
+
+            # Si la partida está activa:
+            elif self.state == GameState.RUNNING:
+
+                # Se obtiene la dirección ingresada por teclado.
                 new_direction = InputHandler.get_direction(event)
 
-                # Envía la dirección a la serpiente.
-                # La serpiente se encargará de validar si el movimiento es permitido
-                # y de guardarlo en su buffer de entrada.
+                # La dirección se envía a la serpiente.
+                # La serpiente decide si la dirección es válida y la agrega
+                # al buffer de entrada.
                 self.snake.queue_direction(new_direction)
 
-            # Si la partida ya terminó, solo se permite reiniciar.
+            # Si la partida terminó:
             elif self.state == GameState.GAME_OVER:
 
-                # Si el jugador presiona la tecla R, se reinicia la partida.
+                # R reinicia la partida.
                 if InputHandler.is_restart_key(event):
                     self.reset_game()
 
@@ -181,95 +222,125 @@ class Game:
         """
         Actualiza la lógica interna del juego.
 
-        Este método se ejecuta en cada iteración del ciclo principal.
-        Aquí se mueve la serpiente, se verifica si comió la comida,
-        se actualiza el puntaje y se comprueba si ocurrió una colisión.
+        Este método se ejecuta en cada ciclo, pero solo actualiza la partida
+        si el estado actual es RUNNING.
+
+        Aquí ocurre la lógica principal:
+        - Mover la serpiente.
+        - Revisar si comió.
+        - Aumentar puntaje.
+        - Generar nueva comida.
+        - Revisar colisiones.
+        - Cambiar a Game Over si corresponde.
         """
 
-        # Si el juego no está en estado RUNNING, no debe actualizarse la lógica.
-        # Por ejemplo, durante Game Over la serpiente ya no debe moverse.
+        # Si el juego no está corriendo, no se actualiza la lógica.
+        # Esto evita que la serpiente se mueva en la pantalla inicial o Game Over.
         if self.state != GameState.RUNNING:
             return
 
-        # Mueve la serpiente una celda en la dirección actual.
+        # Mueve la serpiente una celda.
         self.snake.move()
 
-        # Verifica si la cabeza de la serpiente coincide con la posición de la comida.
+        # Verifica si la cabeza de la serpiente coincide con la comida.
         if CollisionSystem.check_food_collision(self.snake, self.food):
 
-            # Indica que la serpiente debe crecer.
+            # Activa el crecimiento de la serpiente.
             self.snake.grow()
 
-            # Aumenta el puntaje del jugador en 10 puntos.
+            # Aumenta el puntaje.
             self.score_system.increase(10)
 
-            # Genera una nueva comida en una posición libre del tablero.
+            # Genera nueva comida.
             self.food.respawn(self.snake.body)
 
-        # Verifica si ocurrió una condición de fin de juego.
-        # Esto incluye colisión con las paredes o con el propio cuerpo.
+            # Reproduce sonido de comida.
+            self.sound_system.play_eat()
+
+        # Verifica condiciones de fin de juego.
         if CollisionSystem.check_game_over(self.snake):
 
-            # Si existe una colisión, el estado cambia a GAME_OVER.
+            # Cambia el estado a Game Over.
             self.state = GameState.GAME_OVER
+
+            # Reproduce el sonido de Game Over solo una vez.
+            if not self.game_over_sound_played:
+                self.sound_system.play_game_over()
+                self.game_over_sound_played = True
 
     def draw(self):
         """
-        Dibuja los elementos del juego en pantalla.
+        Dibuja los elementos del juego según el estado actual.
 
-        Este método se encarga de actualizar visualmente la ventana.
-        Primero limpia la pantalla, luego dibuja los elementos correspondientes
-        según el estado actual del juego.
+        La pantalla se limpia en cada frame y luego se dibuja lo que corresponde:
+        - Pantalla inicial.
+        - Partida activa.
+        - Pantalla de Game Over.
         """
 
-        # Limpia la pantalla con el color de fondo.
+        # Limpia la pantalla antes de dibujar.
         self.renderer.clear_screen()
 
-        # Dibuja la cuadrícula del tablero.
-        self.renderer.draw_grid()
+        # Si el estado es START_SCREEN, se muestra la pantalla inicial.
+        if self.state == GameState.START_SCREEN:
+            self.screens.draw_start_screen(
+                self.score_system.get_high_score()
+            )
 
-        # Si el juego está en ejecución, se dibujan los elementos normales:
-        # serpiente, comida y puntaje.
-        if self.state == GameState.RUNNING:
+        # Si el estado es RUNNING, se dibuja la partida normal.
+        elif self.state == GameState.RUNNING:
+            self.renderer.draw_grid()
             self.renderer.draw_snake(self.snake)
             self.renderer.draw_food(self.food)
-            self.renderer.draw_score(self.score_system.get_score())
+            self.renderer.draw_score(
+                self.score_system.get_score(),
+                self.score_system.get_high_score()
+            )
 
-        # Si el juego terminó, se siguen dibujando los elementos del juego,
-        # pero además se muestra la pantalla de Game Over.
+        # Si el estado es GAME_OVER, se dibuja el tablero congelado
+        # y encima se muestra la pantalla de Game Over.
         elif self.state == GameState.GAME_OVER:
+            self.renderer.draw_grid()
             self.renderer.draw_snake(self.snake)
             self.renderer.draw_food(self.food)
-            self.renderer.draw_score(self.score_system.get_score())
-            self.screens.draw_game_over(self.score_system.get_score())
+            self.renderer.draw_score(
+                self.score_system.get_score(),
+                self.score_system.get_high_score()
+            )
+            self.screens.draw_game_over(
+                self.score_system.get_score(),
+                self.score_system.get_high_score()
+            )
 
-        # Actualiza la ventana para que todos los dibujos se muestren en pantalla.
+        # Actualiza la ventana para mostrar todo lo dibujado.
         self.renderer.update_display()
 
     def run(self):
         """
         Ejecuta el ciclo principal del juego.
 
-        El ciclo principal mantiene el programa funcionando mientras el estado
-        no sea EXIT. En cada vuelta del ciclo se procesan eventos, se actualiza
-        la lógica, se dibuja la pantalla y se controla la velocidad del juego.
+        Este ciclo se mantiene activo mientras el estado no sea EXIT.
+
+        En cada vuelta:
+        1. Procesa eventos.
+        2. Actualiza la lógica.
+        3. Dibuja la pantalla.
+        4. Controla la velocidad.
         """
 
-        # El juego se mantiene activo hasta que el estado cambie a EXIT.
         while self.state != GameState.EXIT:
 
-            # Procesa entradas del usuario y eventos de ventana.
+            # Procesa teclado y cierre de ventana.
             self.handle_events()
 
-            # Actualiza la lógica interna del juego.
+            # Actualiza lógica de juego.
             self.update()
 
-            # Dibuja los elementos visuales en pantalla.
+            # Dibuja pantalla.
             self.draw()
 
-            # Limita la velocidad del ciclo principal.
-            # FPS define cuántas veces por segundo se ejecutará el juego.
-            self.clock.tick(FPS)
+            # Controla la velocidad usando dificultad progresiva.
+            self.clock.tick(self.get_current_fps())
 
-        # Cierra correctamente los módulos de Pygame al salir del juego.
+        # Cuando se sale del ciclo, se cierra Pygame correctamente.
         pygame.quit()

@@ -2,115 +2,130 @@
 Archivo: input_handler.py
 Descripción:
     Este archivo contiene la clase InputHandler, encargada de interpretar
-    las entradas del teclado realizadas por el jugador.
+    las entradas del teclado.
 
-    Su función principal es separar la lectura del teclado de la lógica principal
-    del juego. De esta forma, el controlador principal no necesita conocer
-    directamente las teclas de Pygame, sino que recibe valores más simples como
-    "UP", "DOWN", "LEFT" o "RIGHT".
+    En Pygame, cuando el usuario presiona una tecla, se genera un evento.
+    Estos eventos usan constantes propias de Pygame, como pygame.K_UP,
+    pygame.K_DOWN, pygame.K_RETURN, etc.
 
-    Esta separación permite mantener el código más ordenado y facilita futuras
-    modificaciones en los controles.
+    Para evitar que el controlador principal del juego tenga que trabajar
+    directamente con todas esas constantes, esta clase traduce los eventos
+    del teclado a valores más simples y entendibles.
+
+    Por ejemplo:
+    - pygame.K_UP se convierte en "UP".
+    - pygame.K_DOWN se convierte en "DOWN".
+    - pygame.K_RETURN se interpreta como inicio de partida.
+    - pygame.K_ESCAPE se interpreta como salida del juego.
 """
 
-
-# Se importa Pygame para poder acceder a las constantes de teclado,
-# como pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT y pygame.K_RIGHT.
 import pygame
 
 
 class InputHandler:
     """
-    Clase encargada de procesar las entradas del teclado.
+    Clase encargada de interpretar los eventos del teclado.
 
-    Esta clase no necesita guardar información interna, por eso sus métodos
-    son estáticos. Un método estático puede ser utilizado sin crear un objeto
-    de la clase.
+    Sus métodos son estáticos porque no necesitan almacenar información interna.
+    Es decir, no hace falta crear un objeto InputHandler para utilizarlos.
+
+    Se puede llamar directamente:
+        InputHandler.get_direction(event)
     """
 
     @staticmethod
     def get_direction(event):
         """
-        Convierte una tecla presionada en una dirección del juego.
+        Convierte una tecla de dirección en una dirección lógica del juego.
 
         Parámetros:
             event:
-                Evento capturado por Pygame. Puede representar una tecla,
-                cierre de ventana u otra acción del usuario.
+                Evento recibido desde Pygame.
 
         Retorna:
             str:
                 "UP", "DOWN", "LEFT" o "RIGHT" si el usuario presionó
-                una tecla de dirección.
+                una flecha de dirección.
             None:
                 Si el evento no corresponde a una tecla de dirección.
 
-        Nota:
-            Este método solo interpreta la tecla presionada.
-            La validación de movimientos opuestos o repetidos se realiza
-            dentro de la clase Snake, específicamente en el buffer de entrada.
+        Decisión de diseño:
+            Este método solo detecta qué tecla fue presionada.
+            No valida si el movimiento es permitido o no.
+
+            La validación de direcciones opuestas se realiza dentro de la clase
+            Snake, porque la serpiente es quien conoce su dirección actual y
+            su buffer de movimientos.
         """
 
-        # Si el evento no es una tecla presionada, no se procesa.
+        # Si el evento no corresponde a una tecla presionada, no se procesa.
         if event.type != pygame.KEYDOWN:
             return None
 
-        # Si el usuario presiona la flecha hacia arriba,
-        # se devuelve la dirección lógica "UP".
+        # Flecha arriba.
+        # Se devuelve una cadena simple para representar la dirección.
         if event.key == pygame.K_UP:
             return "UP"
 
-        # Si el usuario presiona la flecha hacia abajo,
-        # se devuelve la dirección lógica "DOWN".
+        # Flecha abajo.
         if event.key == pygame.K_DOWN:
             return "DOWN"
 
-        # Si el usuario presiona la flecha hacia la izquierda,
-        # se devuelve la dirección lógica "LEFT".
+        # Flecha izquierda.
         if event.key == pygame.K_LEFT:
             return "LEFT"
 
-        # Si el usuario presiona la flecha hacia la derecha,
-        # se devuelve la dirección lógica "RIGHT".
+        # Flecha derecha.
         if event.key == pygame.K_RIGHT:
             return "RIGHT"
 
-        # Si se presiona cualquier otra tecla, este método no genera dirección.
+        # Si la tecla presionada no es una flecha, no se devuelve dirección.
         return None
+
+    @staticmethod
+    def is_start_key(event):
+        """
+        Verifica si el usuario presionó ENTER para iniciar la partida.
+
+        Este método se utiliza en la pantalla inicial. Mientras el juego está
+        en estado START_SCREEN, la tecla ENTER permite comenzar.
+
+        Retorna:
+            bool:
+                True si el usuario presionó ENTER.
+                False en caso contrario.
+        """
+
+        return event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN
 
     @staticmethod
     def is_restart_key(event):
         """
-        Verifica si el usuario presionó la tecla de reinicio.
+        Verifica si el usuario presionó R para reiniciar la partida.
 
-        Parámetros:
-            event:
-                Evento capturado por Pygame.
+        Este método se usa principalmente cuando el juego está en GAME_OVER.
+        Al presionar R, el programa reinicia la serpiente, la comida y el puntaje.
 
         Retorna:
             bool:
                 True si el usuario presionó la tecla R.
-                False en cualquier otro caso.
+                False en caso contrario.
         """
 
-        # La partida se reinicia únicamente cuando el evento corresponde
-        # a una tecla presionada y esa tecla es la letra R.
         return event.type == pygame.KEYDOWN and event.key == pygame.K_r
 
     @staticmethod
     def is_exit_key(event):
         """
-        Verifica si el usuario presionó la tecla de salida.
+        Verifica si el usuario presionó ESC para salir del juego.
 
-        Parámetros:
-            event:
-                Evento capturado por Pygame.
+        Esta tecla se puede utilizar desde la pantalla inicial, durante la partida
+        o en la pantalla de Game Over.
 
         Retorna:
             bool:
-                True si el usuario presionó la tecla ESC.
-                False en cualquier otro caso.
+                True si el usuario presionó ESC.
+                False en caso contrario.
         """
 
-        # El juego se cierra cuando el usuario presiona ESC.
         return event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE

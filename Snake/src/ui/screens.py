@@ -2,57 +2,60 @@
 Archivo: screens.py
 Descripción:
     Este archivo contiene la clase Screens, encargada de mostrar pantallas
-    o mensajes especiales dentro del Juego de la Serpiente.
+    especiales del juego.
 
-    A diferencia de Renderer, que dibuja elementos normales del juego como la
-    serpiente, la comida y el puntaje, esta clase se enfoca en mensajes más
-    generales, como la pantalla de Game Over.
+    A diferencia de Renderer, que dibuja elementos durante la partida, esta clase
+    dibuja pantallas con mensajes más generales, como:
+    - Pantalla inicial.
+    - Pantalla de Game Over.
 
-    Este módulo permite:
-    - Dibujar textos centrados.
-    - Mostrar el mensaje de fin de partida.
-    - Mostrar instrucciones para reiniciar o salir del juego.
+    Separar estas pantallas permite que el código visual sea más claro y ordenado.
 """
 
-
-# Se importa Pygame para crear fuentes y dibujar texto en pantalla.
 import pygame
 
-
-# Se importan dimensiones y colores definidos en settings.py.
 from src.config.settings import (
     SCREEN_WIDTH,
     SCREEN_HEIGHT,
     TEXT_COLOR,
-    GAME_OVER_COLOR
+    GAME_OVER_COLOR,
+    HIGHLIGHT_COLOR
 )
 
 
 class Screens:
     """
-    Clase encargada de mostrar pantallas o mensajes especiales.
+    Clase encargada de mostrar pantallas especiales del juego.
 
-    Esta clase ayuda a separar la presentación de mensajes importantes
-    del resto de la lógica visual del juego.
+    Esta clase ayuda a evitar que game.py se llene de instrucciones para dibujar
+    textos. En su lugar, game.py simplemente llama:
+        self.screens.draw_start_screen(...)
+        self.screens.draw_game_over(...)
     """
 
     def __init__(self, screen):
         """
-        Constructor de la clase Screens.
+        Constructor de Screens.
 
         Parámetros:
             screen:
-                Superficie principal de Pygame donde se dibujarán los textos.
+                Superficie principal donde se dibujarán los textos.
         """
 
-        # Guarda la pantalla principal donde se dibujarán los mensajes.
         self.screen = screen
 
-        # Fuente grande para títulos importantes, como GAME OVER.
-        self.title_font = pygame.font.SysFont("Arial", 48)
+        # Fuente grande para títulos principales.
+        # Se usa tamaño 40 para que el título se vea bien en una ventana de 600x500.
+        self.title_font = pygame.font.SysFont("Arial", 40)
 
-        # Fuente más pequeña para mensajes secundarios e instrucciones.
-        self.text_font = pygame.font.SysFont("Arial", 26)
+        # Fuente mediana para subtítulos, puntaje final y récord.
+        self.subtitle_font = pygame.font.SysFont("Arial", 28)
+
+        # Fuente normal para instrucciones.
+        self.text_font = pygame.font.SysFont("Arial", 23)
+
+        # Fuente pequeña para mensajes secundarios.
+        self.small_font = pygame.font.SysFont("Arial", 20)
 
     def draw_centered_text(self, text, font, color, y_position):
         """
@@ -60,73 +63,145 @@ class Screens:
 
         Parámetros:
             text:
-                Texto que se desea mostrar en pantalla.
+                Texto que se desea mostrar.
 
             font:
-                Fuente que se utilizará para renderizar el texto.
+                Fuente que se utilizará.
 
             color:
-                Color del texto en formato RGB.
+                Color del texto.
 
             y_position:
-                Posición vertical donde se ubicará el texto.
-
-        Este método evita repetir código cada vez que se necesita dibujar
-        un texto centrado.
+                Posición vertical del texto.
         """
 
-        # Convierte el texto en una superficie gráfica que Pygame puede dibujar.
         rendered_text = font.render(text, True, color)
 
-        # Obtiene el rectángulo del texto y lo centra horizontalmente.
-        # La coordenada X se ubica en la mitad de la pantalla.
         text_rect = rendered_text.get_rect(
             center=(SCREEN_WIDTH // 2, y_position)
         )
 
-        # Dibuja el texto renderizado en la pantalla.
         self.screen.blit(rendered_text, text_rect)
 
-    def draw_game_over(self, score):
+    def draw_start_screen(self, high_score):
+        """
+        Muestra la pantalla inicial del juego.
+
+        Parámetros:
+            high_score:
+                Puntaje máximo guardado.
+
+        Esta pantalla aparece cuando el programa inicia. Su objetivo es explicar
+        al usuario cómo jugar antes de comenzar la partida.
+        """
+
+        # Título principal.
+        # Ahora hay más espacio porque la ventana mide 600x500.
+        self.draw_centered_text(
+            "JUEGO DE LA SERPIENTE",
+            self.title_font,
+            HIGHLIGHT_COLOR,
+            SCREEN_HEIGHT // 2 - 155
+        )
+
+        # Línea decorativa simple.
+        self.draw_centered_text(
+            "────────────────────",
+            self.small_font,
+            TEXT_COLOR,
+            SCREEN_HEIGHT // 2 - 115
+        )
+
+        # Instrucciones principales.
+        self.draw_centered_text(
+            "Usa las flechas del teclado para moverte",
+            self.text_font,
+            TEXT_COLOR,
+            SCREEN_HEIGHT // 2 - 65
+        )
+
+        self.draw_centered_text(
+            "Come la comida roja para ganar puntos",
+            self.text_font,
+            TEXT_COLOR,
+            SCREEN_HEIGHT // 2 - 30
+        )
+
+        self.draw_centered_text(
+            "Evita chocar contra las paredes o tu cuerpo",
+            self.text_font,
+            TEXT_COLOR,
+            SCREEN_HEIGHT // 2 + 5
+        )
+
+        # Récord actual.
+        self.draw_centered_text(
+            f"Récord actual: {high_score}",
+            self.subtitle_font,
+            HIGHLIGHT_COLOR,
+            SCREEN_HEIGHT // 2 + 60
+        )
+
+        # Instrucciones de inicio y salida.
+        self.draw_centered_text(
+            "Presiona ENTER para iniciar",
+            self.text_font,
+            TEXT_COLOR,
+            SCREEN_HEIGHT // 2 + 125
+        )
+
+        self.draw_centered_text(
+            "Presiona ESC para salir",
+            self.text_font,
+            TEXT_COLOR,
+            SCREEN_HEIGHT // 2 + 160
+        )
+
+    def draw_game_over(self, score, high_score):
         """
         Muestra la pantalla de Game Over.
 
         Parámetros:
             score:
-                Puntaje final alcanzado por el jugador.
+                Puntaje final obtenido en la partida.
 
-        Esta pantalla aparece cuando la serpiente choca contra una pared
-        o contra su propio cuerpo.
+            high_score:
+                Puntaje máximo guardado.
         """
 
-        # Dibuja el título principal de fin de juego.
         self.draw_centered_text(
             "GAME OVER",
             self.title_font,
             GAME_OVER_COLOR,
-            SCREEN_HEIGHT // 2 - 80
+            SCREEN_HEIGHT // 2 - 120
         )
 
-        # Dibuja el puntaje final obtenido por el jugador.
         self.draw_centered_text(
             f"Puntaje final: {score}",
-            self.text_font,
+            self.subtitle_font,
             TEXT_COLOR,
-            SCREEN_HEIGHT // 2
+            SCREEN_HEIGHT // 2 - 55
         )
 
-        # Dibuja la instrucción para reiniciar la partida.
+        self.draw_centered_text(
+            f"Récord: {high_score}",
+            self.subtitle_font,
+            HIGHLIGHT_COLOR,
+            SCREEN_HEIGHT // 2 - 15
+        )
+
         self.draw_centered_text(
             "Presiona R para reiniciar",
             self.text_font,
             TEXT_COLOR,
-            SCREEN_HEIGHT // 2 + 50
+            SCREEN_HEIGHT // 2 + 65
         )
 
-        # Dibuja la instrucción para salir del juego.
+        # Aquí estaba el error.
+        # Antes faltaba TEXT_COLOR, por eso Python decía que faltaba y_position.
         self.draw_centered_text(
             "Presiona ESC para salir",
             self.text_font,
             TEXT_COLOR,
-            SCREEN_HEIGHT // 2 + 90
+            SCREEN_HEIGHT // 2 + 100
         )

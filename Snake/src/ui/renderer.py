@@ -2,28 +2,23 @@
 Archivo: renderer.py
 Descripción:
     Este archivo contiene la clase Renderer, encargada de dibujar los elementos
-    principales del Juego de la Serpiente.
+    principales del juego.
 
-    La función de este módulo es separar la lógica visual de la lógica del juego.
-    Esto significa que la serpiente, la comida y el puntaje se calculan en otros
-    módulos, pero se dibujan en pantalla desde esta clase.
+    Se separa el renderizado en una clase propia para mantener la lógica visual
+    fuera del controlador principal. Esto permite que game.py se encargue de
+    coordinar el juego, mientras renderer.py se encarga de dibujar.
 
-    Este módulo se encarga de:
-    - Limpiar la pantalla.
-    - Dibujar la cuadrícula.
-    - Dibujar la serpiente.
-    - Dibujar la comida.
-    - Dibujar el puntaje.
-    - Actualizar la ventana del juego.
+    Este módulo dibuja:
+    - Fondo.
+    - Cuadrícula.
+    - Serpiente.
+    - Comida.
+    - Puntaje actual.
+    - Puntaje máximo.
 """
 
-
-# Se importa Pygame para utilizar funciones de dibujo, fuentes y rectángulos.
 import pygame
 
-
-# Se importan los colores, tamaños y dimensiones definidos en settings.py.
-# Esto permite centralizar la configuración visual del juego.
 from src.config.settings import (
     BACKGROUND_COLOR,
     GRID_COLOR,
@@ -31,6 +26,7 @@ from src.config.settings import (
     SNAKE_HEAD_COLOR,
     FOOD_COLOR,
     TEXT_COLOR,
+    HIGHLIGHT_COLOR,
     CELL_SIZE,
     SCREEN_WIDTH,
     SCREEN_HEIGHT
@@ -39,59 +35,64 @@ from src.config.settings import (
 
 class Renderer:
     """
-    Clase encargada de dibujar los elementos principales del juego.
+    Clase encargada de renderizar los elementos visuales del juego.
 
-    Esta clase recibe la pantalla principal de Pygame y utiliza métodos gráficos
-    para representar visualmente el estado actual del juego.
+    Renderizar significa dibujar en pantalla los elementos que forman parte
+    de la partida.
     """
 
     def __init__(self, screen):
         """
-        Constructor de la clase Renderer.
+        Constructor del renderizador.
 
         Parámetros:
             screen:
-                Superficie principal de Pygame donde se dibujan todos los
-                elementos visuales del juego.
+                Superficie principal de Pygame donde se dibuja todo el juego.
+
+        Decisión de diseño:
+            El objeto screen se crea en game.py porque allí se inicializa la ventana.
+            Renderer recibe esa pantalla y la utiliza para dibujar.
         """
 
-        # Guarda la referencia a la pantalla principal.
+        # Guarda la pantalla principal.
         self.screen = screen
 
-        # Crea una fuente de texto para mostrar el puntaje.
-        # Se utiliza Arial con tamaño 24.
-        self.font = pygame.font.SysFont("Arial", 24)
+        # Fuente utilizada para mostrar puntaje y récord.
+        # Se usa Arial tamaño 22 para que quepa bien en una ventana de 400x400.
+        self.font = pygame.font.SysFont("Arial", 22)
 
     def clear_screen(self):
         """
-        Limpia la pantalla con el color de fondo.
+        Limpia la pantalla antes de dibujar el siguiente frame.
 
-        Este método se ejecuta en cada ciclo del juego para borrar el dibujo
-        anterior antes de dibujar la nueva posición de los elementos.
+        En videojuegos, la pantalla se redibuja muchas veces por segundo.
+        Si no se limpia antes de dibujar, los elementos anteriores quedarían
+        marcados y se produciría un efecto visual incorrecto.
         """
 
-        # Rellena toda la pantalla con el color de fondo.
+        # Rellena toda la superficie con el color de fondo.
         self.screen.fill(BACKGROUND_COLOR)
 
     def draw_grid(self):
         """
-        Dibuja una cuadrícula de apoyo visual.
+        Dibuja la cuadrícula del tablero.
 
-        La cuadrícula permite visualizar claramente las celdas por donde se
-        mueve la serpiente. Cada línea se dibuja de acuerdo con el tamaño
-        definido por CELL_SIZE.
+        La cuadrícula ayuda a visualizar las celdas por donde se mueve la serpiente.
+        Cada línea se dibuja separada por CELL_SIZE píxeles.
         """
 
-        # Dibuja líneas verticales desde el borde superior hasta el borde inferior.
+        # Dibuja líneas verticales.
+        # range(0, SCREEN_WIDTH, CELL_SIZE) genera posiciones:
+        # 0, 20, 40, 60, etc.
         for x in range(0, SCREEN_WIDTH, CELL_SIZE):
             pygame.draw.line(
-                self.screen,
-                GRID_COLOR,
-                (x, 0),
-                (x, SCREEN_HEIGHT)
+                self.screen,       # Superficie donde se dibuja.
+                GRID_COLOR,        # Color de la línea.
+                (x, 0),            # Punto inicial de la línea.
+                (x, SCREEN_HEIGHT) # Punto final de la línea.
             )
 
-        # Dibuja líneas horizontales desde el borde izquierdo hasta el borde derecho.
+        # Dibuja líneas horizontales.
         for y in range(0, SCREEN_HEIGHT, CELL_SIZE):
             pygame.draw.line(
                 self.screen,
@@ -102,27 +103,30 @@ class Renderer:
 
     def draw_snake(self, snake):
         """
-        Dibuja la serpiente en pantalla.
+        Dibuja la serpiente.
 
         Parámetros:
             snake:
-                Objeto Snake que contiene la lista de segmentos del cuerpo.
+                Objeto Snake que contiene la lista de coordenadas del cuerpo.
 
         Funcionamiento:
-            Cada segmento de la serpiente se dibuja como un rectángulo.
-            El primer segmento corresponde a la cabeza y se representa con
-            un color diferente para distinguirla del cuerpo.
+            La serpiente se representa como una lista de segmentos.
+            Cada segmento se dibuja como un rectángulo de tamaño CELL_SIZE.
+            El primer segmento es la cabeza.
         """
 
-        # Recorre todos los segmentos del cuerpo de la serpiente.
+        # enumerate permite recorrer la lista y obtener:
+        # - index: posición del segmento en la lista.
+        # - segment: coordenada del segmento.
         for index, segment in enumerate(snake.body):
 
-            # Si el índice es 0, significa que el segmento es la cabeza.
-            # La cabeza se dibuja con un color más brillante.
+            # Si index es 0, se trata de la cabeza.
+            # La cabeza se dibuja con un color distinto.
             color = SNAKE_HEAD_COLOR if index == 0 else SNAKE_COLOR
 
             # Crea un rectángulo en la posición del segmento.
-            # Cada segmento tiene el tamaño de una celda.
+            # segment[0] es la coordenada X.
+            # segment[1] es la coordenada Y.
             rect = pygame.Rect(
                 segment[0],
                 segment[1],
@@ -130,20 +134,24 @@ class Renderer:
                 CELL_SIZE
             )
 
-            # Dibuja el rectángulo en la pantalla.
-            # border_radius suaviza las esquinas para que se vea mejor.
+            # Dibuja el rectángulo.
+            # border_radius=4 redondea ligeramente las esquinas para mejorar
+            # la apariencia visual.
             pygame.draw.rect(self.screen, color, rect, border_radius=4)
 
     def draw_food(self, food):
         """
-        Dibuja la comida en pantalla.
+        Dibuja la comida.
 
         Parámetros:
             food:
                 Objeto Food que contiene la posición actual de la comida.
+
+        La comida también se dibuja como un rectángulo, pero con color rojo
+        y bordes más redondeados.
         """
 
-        # Crea un rectángulo usando la posición actual de la comida.
+        # Crea el rectángulo de la comida.
         rect = pygame.Rect(
             food.position[0],
             food.position[1],
@@ -151,33 +159,52 @@ class Renderer:
             CELL_SIZE
         )
 
-        # Dibuja la comida con color rojo y bordes redondeados.
-        # Esto permite diferenciarla visualmente de la serpiente.
+        # Dibuja la comida en pantalla.
         pygame.draw.rect(self.screen, FOOD_COLOR, rect, border_radius=8)
 
-    def draw_score(self, score):
+    def draw_score(self, score, high_score):
         """
-        Dibuja el puntaje actual en pantalla.
+        Dibuja el puntaje actual y el puntaje máximo.
 
         Parámetros:
             score:
-                Puntaje actual del jugador.
+                Puntaje actual de la partida.
+
+            high_score:
+                Puntaje máximo guardado.
+
+        Decisión de diseño:
+            Se muestran ambos valores en la parte superior izquierda porque es
+            una ubicación visible, pero no interfiere demasiado con el tablero.
         """
 
-        # Crea el texto del puntaje usando la fuente definida en el constructor.
-        score_text = self.font.render(f"Puntaje: {score}", True, TEXT_COLOR)
+        # Crea la superficie de texto para el puntaje actual.
+        score_text = self.font.render(
+            f"Puntaje: {score}",
+            True,
+            TEXT_COLOR
+        )
 
-        # Dibuja el texto en la esquina superior izquierda de la pantalla.
-        self.screen.blit(score_text, (10, 10))
+        # Crea la superficie de texto para el récord.
+        high_score_text = self.font.render(
+            f"Récord: {high_score}",
+            True,
+            HIGHLIGHT_COLOR
+        )
+
+        # Dibuja el puntaje en la posición (10, 8).
+        self.screen.blit(score_text, (10, 8))
+
+        # Dibuja el récord debajo del puntaje.
+        self.screen.blit(high_score_text, (10, 32))
 
     def update_display(self):
         """
-        Actualiza la pantalla del juego.
+        Actualiza la pantalla.
 
-        En Pygame, los dibujos realizados no aparecen visualmente hasta que
-        se actualiza la pantalla. Este método muestra todos los cambios hechos
-        durante el ciclo actual.
+        En Pygame, dibujar elementos sobre la superficie no siempre los muestra
+        inmediatamente. pygame.display.flip() actualiza la ventana completa para
+        que el usuario vea el frame actual.
         """
 
-        # Actualiza completamente la ventana del juego.
         pygame.display.flip()
