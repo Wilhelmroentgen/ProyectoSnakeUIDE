@@ -116,10 +116,10 @@ class Game:
             Luego se calcula un bono de velocidad en función del puntaje.
 
         Ejemplo:
-            Si SPEED_INCREASE_EVERY = 50:
+            Si SPEED_INCREASE_EVERY = 100:
             - 0 puntos   -> FPS base.
-            - 50 puntos  -> FPS + 1.
-            - 100 puntos -> FPS + 2.
+            - 100 puntos -> FPS + 1.
+            - 200 puntos -> FPS + 2.
 
         La función min() impide superar MAX_FPS.
         """
