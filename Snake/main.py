@@ -1,24 +1,20 @@
 """
 Archivo: main.py
 Descripción:
-    Este archivo es el punto de entrada principal del programa.
+    Este archivo es el punto de entrada principal del proyecto.
 
-    Su responsabilidad es iniciar el Juego de la Serpiente de forma ordenada.
-    No contiene la lógica completa del juego, ya que esa responsabilidad está
-    delegada a la clase Game ubicada en src/core/game.py.
+    Punto de entrada significa que este es el primer archivo que se ejecuta
+    cuando el usuario inicia el programa.
 
-    Además, este archivo valida que el programa se ejecute con Python 3.13,
-    debido a que esta versión es la utilizada para instalar y ejecutar Pygame
-    correctamente en este proyecto.
+    Este archivo no contiene la lógica completa del juego, porque esa lógica
+    está organizada dentro de la clase Game. Su responsabilidad es:
+    - Validar la versión de Python.
+    - Crear el objeto principal del juego.
+    - Ejecutar el ciclo principal.
 """
 
-
-# Se importa sys para consultar información sobre la versión de Python
-# que está ejecutando el programa.
 import sys
 
-
-# Se importa la clase Game, que contiene el controlador principal del juego.
 from src.core.game import Game
 
 
@@ -26,29 +22,28 @@ def validate_python_version():
     """
     Valida que el programa se ejecute con Python 3.13.
 
-    Esta validación evita problemas de compatibilidad con librerías externas,
-    especialmente con Pygame. Si el usuario ejecuta el programa con otra versión
-    de Python, se muestra un mensaje explicativo y el programa se detiene.
+    Motivo:
+        El proyecto fue probado con Python 3.13 y Pygame.
+        En algunas versiones más nuevas, como Python 3.14, puede haber problemas
+        de compatibilidad o instalación con ciertas librerías.
+
+    Si la versión no es Python 3.13, el programa muestra un mensaje y se detiene.
     """
 
-    # Obtiene la versión mayor de Python.
-    # Por ejemplo, en Python 3.13, major sería 3.
+    # Versión principal de Python.
+    # En Python 3.13, major es 3.
     major = sys.version_info.major
 
-    # Obtiene la versión menor de Python.
-    # Por ejemplo, en Python 3.13, minor sería 13.
+    # Versión secundaria de Python.
+    # En Python 3.13, minor es 13.
     minor = sys.version_info.minor
 
-    # Verifica que la versión sea exactamente Python 3.13.
+    # Verifica que sea exactamente Python 3.13.
     if major != 3 or minor != 13:
 
-        # Muestra un mensaje indicando la versión requerida.
+        # Mensajes explicativos para el usuario.
         print("Este proyecto debe ejecutarse con Python 3.13.")
-
-        # Muestra la versión detectada en el sistema actual.
         print(f"Versión actual detectada: Python {major}.{minor}")
-
-        # Indica el comando correcto para ejecutar el programa.
         print("Ejecuta el programa usando:")
         print("py -3.13 main.py")
 
@@ -60,21 +55,24 @@ def main():
     """
     Función principal del programa.
 
-    Esta función primero valida la versión de Python y luego crea una instancia
-    del juego. Finalmente, ejecuta el ciclo principal mediante el método run().
+    Esta función organiza el inicio del juego.
     """
 
-    # Valida que se esté usando la versión correcta de Python.
+    # Primero se valida la versión de Python.
     validate_python_version()
 
-    # Crea una instancia del controlador principal del juego.
+    # Se crea el objeto Game.
+    # Este objeto inicializa Pygame, la ventana y todos los módulos internos.
     game = Game()
 
-    # Ejecuta el ciclo principal del juego.
+    # Se ejecuta el ciclo principal del juego.
     game.run()
 
 
-# Esta condición permite que el programa se ejecute únicamente cuando
-# main.py se llama directamente, y no cuando se importa desde otro archivo.
+# Esta condición permite que main() se ejecute solo cuando este archivo
+# se ejecuta directamente.
+#
+# Si main.py fuera importado desde otro archivo, esta parte no se ejecutaría
+# automáticamente.
 if __name__ == "__main__":
     main()
