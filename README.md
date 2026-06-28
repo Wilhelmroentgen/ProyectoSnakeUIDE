@@ -127,7 +127,7 @@ Los documentos principales del proyecto se encuentran disponibles en los siguien
 
 * [Proyecto Integrador - Erick Pries](https://github.com/Wilhelmroentgen/ProyectoSnakeUIDE/blob/main/Materiales%20de%20entrega/Documentos/Proyecto%20Integrador%20-%20Erick%20Pries.pdf)
 
-* [Video Final - Erick Pries](https://github.com/Wilhelmroentgen/ProyectoSnakeUIDE/blob/main/Materiales%20de%20entrega/Documentos/Proyecto%20Integrador%20-%20Erick%20Pries.pdf)
+* [Video Final - Erick Pries](https://github.com/Wilhelmroentgen/ProyectoSnakeUIDE/blob/main/Materiales%20de%20entrega/Videos/Enlace%20a%20video%20del%20Proyecto%20Integrador.txt)
 
 ---
 
